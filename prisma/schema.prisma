@@ -1,0 +1,484 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Plan {
+  FREE
+  STANDARD
+  ENTERPRISE
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  WORKER
+}
+
+enum ProjectStatus {
+  PLANNING
+  IN_PROGRESS
+  COMPLETED
+  PAUSED
+}
+
+enum ProjectMemberRole {
+  LEADER
+  MEMBER
+}
+
+enum Weather {
+  SUNNY
+  CLOUDY
+  RAINY
+  SNOWY
+}
+
+enum TemplateType {
+  REPORT
+  PROCESS
+  MESSAGE
+  ESTIMATE
+  SCHEDULE
+  PURCHASE_ORDER
+  INVOICE
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum EstimateStatus {
+  DRAFT
+  SENT
+  APPROVED
+  REJECTED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PARTIAL
+  PAID
+  OVERDUE
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  SENT
+  RECEIVED
+  CANCELLED
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model Company {
+  id        String   @id @default(cuid())
+  name      String
+  plan      Plan     @default(FREE)
+  createdAt DateTime @default(now())
+
+  users     User[]
+  customers Customer[]
+  projects  Project[]
+  tags           Tag[]
+  templates      Template[]
+  estimates      Estimate[]
+  invoices       Invoice[]
+  purchaseOrders PurchaseOrder[]
+  budgets        ProjectBudget[]
+  schedules      Schedule[]
+}
+
+model User {
+  id                 String   @id @default(cuid())
+  companyId          String
+  name               String
+  email              String   @unique
+  passwordHash       String
+  role               UserRole @default(WORKER)
+  avatarUrl          String?
+  subcontractorName  String?
+  createdAt          DateTime @default(now())
+
+  company        Company         @relation(fields: [companyId], references: [id])
+  projectMembers ProjectMember[]
+  dailyReports   DailyReport[]
+  workLogs       WorkLog[]
+  photos         Photo[]
+  documents      Document[]
+  scheduleTasks  ScheduleTask[]
+  sentMessages   Message[]       @relation("SentMessages")
+  estimates      Estimate[]
+  invoices       Invoice[]
+  purchaseOrders PurchaseOrder[]
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  companyId String
+  name      String
+  phone     String?
+  address   String?
+  email     String?
+  memo      String?
+  createdAt DateTime @default(now())
+
+  company   Company    @relation(fields: [companyId], references: [id])
+  projects  Project[]
+  estimates Estimate[]
+  invoices  Invoice[]
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  companyId   String
+  customerId  String?
+  name        String
+  address     String?
+  status      ProjectStatus @default(PLANNING)
+  startDate   DateTime?
+  endDate     DateTime?
+  description String?
+  createdAt   DateTime      @default(now())
+
+  company       Company         @relation(fields: [companyId], references: [id])
+  customer      Customer?       @relation(fields: [customerId], references: [id])
+  members       ProjectMember[]
+  dailyReports  DailyReport[]
+  photos        Photo[]
+  documents     Document[]
+  schedules     Schedule[]
+  talkRooms     TalkRoom[]
+  albums        Album[]
+  estimates      Estimate[]
+  invoices       Invoice[]
+  purchaseOrders PurchaseOrder[]
+  budget         ProjectBudget?
+}
+
+model ProjectMember {
+  projectId String
+  userId    String
+  role      ProjectMemberRole @default(MEMBER)
+
+  project Project @relation(fields: [projectId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@id([projectId, userId])
+}
+
+model DailyReport {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  workDate  DateTime @db.Date
+  summary   String?
+  weather   Weather  @default(SUNNY)
+  createdAt DateTime @default(now())
+
+  project  Project   @relation(fields: [projectId], references: [id])
+  user     User      @relation(fields: [userId], references: [id])
+  workLogs WorkLog[]
+  photos   Photo[]
+}
+
+model WorkLog {
+  id             String   @id @default(cuid())
+  dailyReportId  String
+  userId         String
+  startTime      DateTime
+  endTime        DateTime
+  breakMinutes   Int      @default(0)
+  workContent    String?
+
+  dailyReport DailyReport @relation(fields: [dailyReportId], references: [id])
+  user        User        @relation(fields: [userId], references: [id])
+}
+
+model Photo {
+  id               String   @id @default(cuid())
+  projectId        String
+  uploadedById     String
+  dailyReportId    String?
+  url              String
+  thumbnailUrl     String?
+  originalFilename String?
+  fileSize         Int?
+  caption          String?
+  takenAt          DateTime?
+  createdAt        DateTime @default(now())
+
+  project     Project      @relation(fields: [projectId], references: [id])
+  uploadedBy  User         @relation(fields: [uploadedById], references: [id])
+  dailyReport DailyReport? @relation(fields: [dailyReportId], references: [id])
+  photoTags   PhotoTag[]
+  albumPhotos AlbumPhoto[]
+  coverAlbums Album[]      @relation("CoverPhoto")
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  companyId String
+  name      String
+  color     String?
+
+  company   Company    @relation(fields: [companyId], references: [id])
+  photoTags PhotoTag[]
+}
+
+model PhotoTag {
+  photoId String
+  tagId   String
+
+  photo Photo @relation(fields: [photoId], references: [id])
+  tag   Tag   @relation(fields: [tagId], references: [id])
+
+  @@id([photoId, tagId])
+}
+
+model Album {
+  id           String   @id @default(cuid())
+  projectId    String
+  name         String
+  coverPhotoId String?
+  createdAt    DateTime @default(now())
+
+  project     Project      @relation(fields: [projectId], references: [id])
+  coverPhoto  Photo?       @relation("CoverPhoto", fields: [coverPhotoId], references: [id])
+  albumPhotos AlbumPhoto[]
+}
+
+model AlbumPhoto {
+  albumId   String
+  photoId   String
+  sortOrder Int    @default(0)
+
+  album Album @relation(fields: [albumId], references: [id])
+  photo Photo @relation(fields: [photoId], references: [id])
+
+  @@id([albumId, photoId])
+}
+
+model Template {
+  id        String       @id @default(cuid())
+  companyId String
+  name      String
+  type      TemplateType
+  content   Json
+  createdAt DateTime     @default(now())
+
+  company   Company    @relation(fields: [companyId], references: [id])
+  documents Document[]
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  projectId   String
+  createdById String
+  templateId  String?
+  title       String
+  pdfUrl      String?
+  data        Json
+  createdAt   DateTime @default(now())
+
+  project   Project   @relation(fields: [projectId], references: [id])
+  createdBy User      @relation(fields: [createdById], references: [id])
+  template  Template? @relation(fields: [templateId], references: [id])
+}
+
+model Schedule {
+  id        String   @id @default(cuid())
+  companyId String?
+  projectId String?
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company Company?       @relation(fields: [companyId], references: [id])
+  project Project?       @relation(fields: [projectId], references: [id])
+  tasks   ScheduleTask[]
+}
+
+model ScheduleTask {
+  id             String     @id @default(cuid())
+  scheduleId     String
+  assignedUserId String?
+  name           String
+  startDate      DateTime   @db.Date
+  endDate        DateTime   @db.Date
+  status         TaskStatus @default(TODO)
+  sortOrder      Int        @default(0)
+  color          String?
+
+  schedule     Schedule @relation(fields: [scheduleId], references: [id])
+  assignedUser User?    @relation(fields: [assignedUserId], references: [id])
+}
+
+model TalkRoom {
+  id        String   @id @default(cuid())
+  projectId String
+  createdAt DateTime @default(now())
+
+  project  Project   @relation(fields: [projectId], references: [id])
+  messages Message[]
+}
+
+model Message {
+  id            String   @id @default(cuid())
+  roomId        String
+  senderId      String
+  content       String?
+  attachmentUrl String?
+  isRead        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  room   TalkRoom @relation(fields: [roomId], references: [id])
+  sender User     @relation("SentMessages", fields: [senderId], references: [id])
+}
+
+model Estimate {
+  id          String         @id @default(cuid())
+  companyId   String
+  customerId  String?
+  projectId   String?
+  createdById String
+  estimateNo  String
+  title       String
+  issueDate   DateTime       @db.Date
+  expiryDate  DateTime?      @db.Date
+  status      EstimateStatus @default(DRAFT)
+  taxRate     Int            @default(10)
+  notes       String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  company   Company        @relation(fields: [companyId], references: [id])
+  customer  Customer?      @relation(fields: [customerId], references: [id])
+  project   Project?       @relation(fields: [projectId], references: [id])
+  createdBy User           @relation(fields: [createdById], references: [id])
+  items     EstimateItem[]
+  invoices  Invoice[]
+}
+
+model EstimateItem {
+  id          String  @id @default(cuid())
+  estimateId  String
+  sortOrder   Int     @default(0)
+  name        String
+  description String?
+  quantity    Float   @default(1)
+  unit        String  @default("式")
+  unitPrice   Float   @default(0)
+  amount      Float   @default(0)
+
+  estimate Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+}
+
+model Invoice {
+  id          String        @id @default(cuid())
+  companyId   String
+  customerId  String?
+  projectId   String?
+  estimateId  String?
+  createdById String
+  invoiceNo   String
+  title       String
+  issueDate   DateTime      @db.Date
+  dueDate     DateTime?     @db.Date
+  status      InvoiceStatus @default(DRAFT)
+  taxRate     Int           @default(10)
+  notes       String?
+  paidAmount  Float         @default(0)
+  paidDate    DateTime?     @db.Date
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  company   Company       @relation(fields: [companyId], references: [id])
+  customer  Customer?     @relation(fields: [customerId], references: [id])
+  project   Project?      @relation(fields: [projectId], references: [id])
+  estimate  Estimate?     @relation(fields: [estimateId], references: [id])
+  createdBy User          @relation(fields: [createdById], references: [id])
+  items     InvoiceItem[]
+}
+
+model InvoiceItem {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  sortOrder   Int     @default(0)
+  name        String
+  description String?
+  quantity    Float   @default(1)
+  unit        String  @default("式")
+  unitPrice   Float   @default(0)
+  amount      Float   @default(0)
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model PurchaseOrder {
+  id           String              @id @default(cuid())
+  companyId    String
+  projectId    String?
+  createdById  String
+  orderNo      String
+  vendorName   String
+  title        String
+  issueDate    DateTime            @db.Date
+  deliveryDate DateTime?           @db.Date
+  status       PurchaseOrderStatus @default(DRAFT)
+  taxRate      Int                 @default(10)
+  notes        String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  company   Company             @relation(fields: [companyId], references: [id])
+  project   Project?            @relation(fields: [projectId], references: [id])
+  createdBy User                @relation(fields: [createdById], references: [id])
+  items     PurchaseOrderItem[]
+}
+
+model PurchaseOrderItem {
+  id              String  @id @default(cuid())
+  purchaseOrderId String
+  sortOrder       Int     @default(0)
+  name            String
+  description     String?
+  quantity        Float   @default(1)
+  unit            String  @default("式")
+  unitPrice       Float   @default(0)
+  amount          Float   @default(0)
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+}
+
+model ProjectBudget {
+  id        String   @id @default(cuid())
+  projectId String   @unique
+  companyId String
+
+  project Project             @relation(fields: [projectId], references: [id])
+  company Company             @relation(fields: [companyId], references: [id])
+  items   ProjectBudgetItem[]
+}
+
+model ProjectBudgetItem {
+  id           String  @id @default(cuid())
+  budgetId     String
+  sortOrder    Int     @default(0)
+  category     String
+  budgetAmount Float   @default(0)
+  memo         String?
+
+  budget ProjectBudget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+}
