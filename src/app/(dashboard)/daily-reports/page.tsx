@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";;
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
@@ -30,7 +30,7 @@ interface DailyReport {
   user: { id: string; name: string; avatarUrl: string | null; subcontractorName: string | null };
 }
 
-export default function DailyReportsPage() {
+function DailyReportsPageInner() {
   const searchParams    = useSearchParams();
   const initialProjectId = searchParams.get("projectId") ?? "";
 
@@ -219,5 +219,13 @@ export default function DailyReportsPage() {
         )}
       </Card>
     </div>
+  );
+}
+
+export default function DailyReportsPage() {
+  return (
+    <Suspense fallback={<div />}>
+      <DailyReportsPageInner />
+    </Suspense>
   );
 }

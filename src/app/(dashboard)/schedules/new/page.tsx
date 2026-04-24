@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";;
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
@@ -158,7 +158,7 @@ function MiniGantt({ tasks }: { tasks: TaskRow[] }) {
 }
 
 // ─── メインページ ─────────────────────────────────────────────────────────────
-export default function ScheduleNewPage() {
+function ScheduleNewPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
@@ -558,5 +558,13 @@ export default function ScheduleNewPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ScheduleNewPage() {
+  return (
+    <Suspense fallback={<div />}>
+      <ScheduleNewPageInner />
+    </Suspense>
   );
 }

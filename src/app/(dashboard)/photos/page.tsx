@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";;
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
@@ -25,7 +25,7 @@ interface Project {
   name: string;
 }
 
-export default function PhotosPage() {
+function PhotosPageInner() {
   const searchParams = useSearchParams();
   const initialProjectId = searchParams.get("projectId") ?? "";
 
@@ -174,5 +174,13 @@ export default function PhotosPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function PhotosPage() {
+  return (
+    <Suspense fallback={<div />}>
+      <PhotosPageInner />
+    </Suspense>
   );
 }

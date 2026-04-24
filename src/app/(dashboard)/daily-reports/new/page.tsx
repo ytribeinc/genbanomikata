@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";;
 
-import { useState, useEffect, useCallback, useRef, FormEvent } from "react";
+import { useState, useEffect, useCallback, useRef, FormEvent, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
@@ -54,7 +54,7 @@ function calcMinutes(start: string, end: string, breakMins: number): number {
   return Math.max(0, (eh * 60 + em) - (sh * 60 + sm) - breakMins);
 }
 
-export default function DailyReportNewPage() {
+function DailyReportNewPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
@@ -541,5 +541,13 @@ export default function DailyReportNewPage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function DailyReportNewPage() {
+  return (
+    <Suspense fallback={<div />}>
+      <DailyReportNewPageInner />
+    </Suspense>
   );
 }

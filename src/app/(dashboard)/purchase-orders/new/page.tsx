@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";;
 
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, FormEvent, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
@@ -23,7 +23,7 @@ function calcAmount(qty: number | string, price: number | string) {
   return (Number(qty) || 0) * (Number(price) || 0);
 }
 
-export default function PurchaseOrderNewPage() {
+function PurchaseOrderNewPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const today = new Date().toISOString().slice(0, 10);
@@ -184,5 +184,13 @@ export default function PurchaseOrderNewPage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function PurchaseOrderNewPage() {
+  return (
+    <Suspense fallback={<div />}>
+      <PurchaseOrderNewPageInner />
+    </Suspense>
   );
 }
