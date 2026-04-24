@@ -6,16 +6,17 @@ import { prisma } from "@/lib/prisma";
 // GET /api/daily-reports/[id]
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
   }
 
+  const { id } = await params;
   const dailyReport = await prisma.dailyReport.findFirst({
     where: {
-      id: params.id,
+      id,
       project: { companyId: session.user.companyId },
     },
     include: {
@@ -53,7 +54,7 @@ export async function GET(
 // PATCH /api/daily-reports/[id]
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
@@ -91,7 +92,7 @@ export async function PATCH(
     const { summary, weather } = body;
 
     const dailyReport = await prisma.dailyReport.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...(summary !== undefined ? { summary } : {}),
         ...(weather !== undefined ? { weather } : {}),
@@ -127,7 +128,7 @@ export async function PATCH(
 // DELETE /api/daily-reports/[id]
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
