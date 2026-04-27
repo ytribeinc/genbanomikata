@@ -28,4 +28,4 @@ ENV NODE_ENV=production
 
 EXPOSE 3000
 
-CMD ["npx", "tsx", "server.ts"]
+CMD ["sh", "-c", "node node_modules/.bin/prisma db push && npx tsx server.ts"]
