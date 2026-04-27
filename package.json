@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "tsx server.ts",
     "build": "rm -rf .next && next build",
-    "start": "NODE_ENV=production tsx server.ts",
+    "start": "prisma db push && NODE_ENV=production tsx server.ts",
     "lint": "eslint",
     "postinstall": "prisma generate"
   },
