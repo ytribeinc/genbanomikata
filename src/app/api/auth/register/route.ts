@@ -79,8 +79,9 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error("[POST /api/auth/register]", error);
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: "サーバーエラーが発生しました" },
+      { error: "サーバーエラーが発生しました", detail: message },
       { status: 500 }
     );
   }
