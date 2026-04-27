@@ -4,6 +4,7 @@ import { getToken } from "next-auth/jwt";
 // 認証不要のパスパターン
 const PUBLIC_PATHS = [
   /^\/api\/auth\//,   // /api/auth/* (NextAuth endpoints + register)
+  /^\/api\/debug$/,   // デバッグ用（一時的）
   /^\/login$/,
   /^\/register$/,
   /^\/_next\//,
