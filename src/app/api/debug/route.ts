@@ -1,28 +1,31 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { execSync } from "child_process";
 
 export async function GET() {
   const info: Record<string, unknown> = {
-    DATABASE_URL: process.env.DATABASE_URL ? "設定済み (" + process.env.DATABASE_URL.split("@")[1] + ")" : "未設定",
-    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? "設定済み" : "未設定",
+    DATABASE_URL: process.env.DATABASE_URL
+      ? "設定済み: " + process.env.DATABASE_URL.replace(/:\/\/.*@/, "://***@")
+      : "未設定",
     NODE_ENV: process.env.NODE_ENV,
   };
 
+  // prisma db push を実行して結果を返す
   try {
-    const result = await prisma.$queryRaw<{ count: bigint }[]>`
-      SELECT COUNT(*) as count FROM information_schema.tables
-      WHERE table_schema = 'public'
-    `;
-    info.db_status = "接続成功";
-    info.table_count = Number(result[0]?.count ?? 0);
-
-    if (Number(result[0]?.count ?? 0) === 0) {
-      info.db_warning = "テーブルが存在しません。prisma db push が必要です。";
-    }
-  } catch (e) {
-    info.db_status = "接続失敗";
-    info.db_error = e instanceof Error ? e.message : String(e);
+    const output = execSync("node node_modules/.bin/prisma db push 2>&1", {
+      env: { ...process.env },
+      encoding: "utf8",
+      timeout: 60000,
+    });
+    info.prisma_push = "成功";
+    info.prisma_output = output;
+  } catch (e: unknown) {
+    const err = e as { message?: string; stdout?: string; stderr?: string; status?: number };
+    info.prisma_push = "失敗";
+    info.prisma_error = err.message;
+    info.prisma_stdout = err.stdout;
+    info.prisma_stderr = err.stderr;
+    info.prisma_status = err.status;
   }
 
-  return NextResponse.json(info);
+  return NextResponse.json(info, { headers: { "Content-Type": "application/json" } });
 }
