@@ -12,7 +12,7 @@ const port = parseInt(process.env.PORT ?? "3000", 10);
 if (!dev) {
   try {
     console.log("> Running prisma db push...");
-    execSync("node node_modules/.bin/prisma db push", { stdio: "inherit" });
+    execSync("node node_modules/.bin/prisma db push", { stdio: "inherit", env: { ...process.env } });
     console.log("> Database schema applied.");
   } catch (e) {
     console.error("prisma db push failed:", e);
